@@ -1,10 +1,7 @@
 import axiosInstance from "@/api/axiosInstance";
 
 export async function registerService(formData) {
-  const { data } = await axiosInstance.post("/auth/register", {
-    ...formData,
-    role: "user",
-  });
+  const { data } = await axiosInstance.post("/auth/register", formData);
 
   return data;
 }
@@ -162,5 +159,75 @@ export async function resetCourseProgressService(userId, courseId) {
     }
   );
 
+  return data;
+}
+
+// Admin Services
+export async function fetchAllUsersService() {
+  const { data } = await axiosInstance.get(`/admin/users`);
+
+  return data;
+}
+
+export async function updateUserRoleService(userId, role) {
+  const { data } = await axiosInstance.put(`/admin/users/${userId}/role`, {
+    role,
+  });
+
+  return data;
+}
+
+export async function deleteUserService(userId) {
+  const { data } = await axiosInstance.delete(`/admin/users/${userId}`);
+
+  return data;
+}
+
+export async function createExamService(payload) {
+  const { data } = await axiosInstance.post(`/admin/exams`, payload);
+  return data;
+}
+
+export async function fetchAdminExamsForCourseService(courseId) {
+  const { data } = await axiosInstance.get(`/admin/exams/course/${courseId}`);
+  return data;
+}
+
+export async function fetchAdminExamByIdService(examId) {
+  const { data } = await axiosInstance.get(`/admin/exams/${examId}`);
+  return data;
+}
+
+export async function updateExamService(examId, payload) {
+  const { data } = await axiosInstance.put(`/admin/exams/${examId}`, payload);
+  return data;
+}
+
+export async function deleteExamService(examId) {
+  const { data } = await axiosInstance.delete(`/admin/exams/${examId}`);
+  return data;
+}
+
+export async function listStudentExamsForCourseService(courseId) {
+  const { data } = await axiosInstance.get(
+    `/student/exam/course/${courseId}/list`
+  );
+  return data;
+}
+
+export async function fetchStudentExamService(examId) {
+  const { data } = await axiosInstance.get(`/student/exam/${examId}`);
+  return data;
+}
+
+export async function submitStudentExamService(examId, answers) {
+  const { data } = await axiosInstance.post(`/student/exam/${examId}/submit`, {
+    answers,
+  });
+  return data;
+}
+
+export async function getStudentLastExamAttemptService(examId) {
+  const { data } = await axiosInstance.get(`/student/exam/${examId}/attempt`);
   return data;
 }

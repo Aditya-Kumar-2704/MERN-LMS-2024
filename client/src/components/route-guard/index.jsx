@@ -3,28 +3,25 @@ import { Fragment } from "react";
 
 function RouteGuard({ authenticated, user, element }) {
   const location = useLocation();
+  const path = location.pathname;
 
-  console.log(authenticated, user, "useruser");
-
-  if (!authenticated && !location.pathname.includes("/auth")) {
+  if (!authenticated && !path.includes("/auth")) {
     return <Navigate to="/auth" />;
   }
 
-  if (
-    authenticated &&
-    user?.role !== "instructor" &&
-    (location.pathname.includes("instructor") ||
-      location.pathname.includes("/auth"))
-  ) {
+  if (authenticated && path.includes("/auth")) {
     return <Navigate to="/home" />;
+  }
+
+  if (authenticated && user?.role === "admin") {
+    return <Fragment>{element}</Fragment>;
   }
 
   if (
     authenticated &&
-    user.role === "instructor" &&
-    !location.pathname.includes("instructor")
+    (path.includes("/admin") || path.includes("/instructor"))
   ) {
-    return <Navigate to="/instructor" />;
+    return <Navigate to="/home" />;
   }
 
   return <Fragment>{element}</Fragment>;

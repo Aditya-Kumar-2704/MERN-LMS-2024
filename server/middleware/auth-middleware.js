@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("../helpers/jwt-secret");
 
 const verifyToken = (token, secretKey) => {
   return jwt.verify(token, secretKey);
@@ -6,7 +7,6 @@ const verifyToken = (token, secretKey) => {
 
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  console.log(authHeader, "authHeader");
 
   if (!authHeader) {
     return res.status(401).json({
@@ -18,7 +18,7 @@ const authenticate = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const payload = verifyToken(token, "JWT_SECRET");
+    const payload = verifyToken(token, getJwtSecret());
 
     req.user = payload;
 

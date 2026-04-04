@@ -2,10 +2,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { initialSignInFormData, initialSignUpFormData } from "@/config";
 import { checkAuthService, loginService, registerService } from "@/services";
 import { createContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const AuthContext = createContext(null);
 
 export default function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [signInFormData, setSignInFormData] = useState(initialSignInFormData);
   const [signUpFormData, setSignUpFormData] = useState(initialSignUpFormData);
   const [auth, setAuth] = useState({
@@ -14,26 +16,58 @@ export default function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
 
+  // Redirect user to their dashboard based on role
+  const redirectToRoleDashboard = (user) => {
+    if (user?.role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/home");
+    }
+  };
+
   async function handleRegisterUser(event) {
     event.preventDefault();
-    const data = await registerService(signUpFormData);
+    try {
+      const data = await registerService(signUpFormData);
+      if (data.success) {
+        setSignUpFormData(initialSignUpFormData);
+        alert("Registration successful! Please sign in with your credentials.");
+      } else {
+        alert(data.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert(error?.response?.data?.message || "An error occurred during registration");
+    }
   }
 
   async function handleLoginUser(event) {
     event.preventDefault();
-    const data = await loginService(signInFormData);
-    console.log(data, "datadatadatadatadata");
+    try {
+      const data = await loginService(signInFormData);
+      console.log(data, "Login Response");
 
-    if (data.success) {
-      sessionStorage.setItem(
-        "accessToken",
-        JSON.stringify(data.data.accessToken)
-      );
-      setAuth({
-        authenticate: true,
-        user: data.data.user,
-      });
-    } else {
+      if (data.success) {
+        sessionStorage.setItem(
+          "accessToken",
+          JSON.stringify(data.data.accessToken)
+        );
+        setAuth({
+          authenticate: true,
+          user: data.data.user,
+        });
+        // Redirect to appropriate dashboard based on role
+        redirectToRoleDashboard(data.data.user);
+      } else {
+        alert(data.message || "Login failed");
+        setAuth({
+          authenticate: false,
+          user: null,
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert(error?.response?.data?.message || "An error occurred during login. Check console.");
       setAuth({
         authenticate: false,
         user: null,

@@ -5,12 +5,13 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { AuthContext } from "@/context/auth-context";
 import { InstructorContext } from "@/context/instructor-context";
 import { fetchInstructorCourseListService } from "@/services";
-import { BarChart, Book, LogOut } from "lucide-react";
+import { BarChart, Book, LogOut, Shield } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 function InstructorDashboardpage() {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { resetCredentials } = useContext(AuthContext);
+  const { resetCredentials, auth } = useContext(AuthContext);
   const { instructorCoursesList, setInstructorCoursesList } =
     useContext(InstructorContext);
 
@@ -55,7 +56,19 @@ function InstructorDashboardpage() {
     <div className="flex h-full min-h-screen bg-gray-100">
       <aside className="w-64 bg-white shadow-md hidden md:block">
         <div className="p-4">
-          <h2 className="text-2xl font-bold mb-4">Instructor View</h2>
+          <h2 className="text-2xl font-bold mb-4">Course manager</h2>
+          {auth?.user?.role === "admin" ? (
+            <Button
+              asChild
+              variant="outline"
+              className="w-full justify-start mb-4 text-sm"
+            >
+              <Link to="/admin">
+                <Shield className="mr-2 h-4 w-4" />
+                Admin panel
+              </Link>
+            </Button>
+          ) : null}
           <nav>
             {menuItems.map((menuItem) => (
               <Button

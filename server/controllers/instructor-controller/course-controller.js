@@ -2,7 +2,11 @@ const Course = require("../../models/Course");
 
 const addNewCourse = async (req, res) => {
   try {
-    const courseData = req.body;
+    const courseData = {
+      ...req.body,
+      instructorId: String(req.user._id),
+      instructorName: req.user.userName,
+    };
     const newlyCreatedCourse = new Course(courseData);
     const saveCourse = await newlyCreatedCourse.save();
 

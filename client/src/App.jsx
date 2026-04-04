@@ -4,6 +4,7 @@ import RouteGuard from "./components/route-guard";
 import { useContext } from "react";
 import { AuthContext } from "./context/auth-context";
 import InstructorDashboardpage from "./pages/instructor";
+import AdminPage from "./pages/admin";
 import StudentViewCommonLayout from "./components/student-view/common-layout";
 import StudentHomePage from "./pages/student/home";
 import NotFoundPage from "./pages/not-found";
@@ -13,6 +14,7 @@ import StudentViewCourseDetailsPage from "./pages/student/course-details";
 import PaypalPaymentReturnPage from "./pages/student/payment-return";
 import StudentCoursesPage from "./pages/student/student-courses";
 import StudentViewCourseProgressPage from "./pages/student/course-progress";
+import StudentCourseExamPage from "./pages/student/course-exam";
 
 function App() {
   const { auth } = useContext(AuthContext);
@@ -34,6 +36,16 @@ function App() {
         element={
           <RouteGuard
             element={<InstructorDashboardpage />}
+            authenticated={auth?.authenticate}
+            user={auth?.user}
+          />
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RouteGuard
+            element={<AdminPage />}
             authenticated={auth?.authenticate}
             user={auth?.user}
           />
@@ -81,6 +93,10 @@ function App() {
         <Route
           path="course-progress/:id"
           element={<StudentViewCourseProgressPage />}
+        />
+        <Route
+          path="course/:courseId/exam/:examId"
+          element={<StudentCourseExamPage />}
         />
       </Route>
       <Route path="*" element={<NotFoundPage />} />

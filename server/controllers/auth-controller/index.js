@@ -1,9 +1,10 @@
 const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { getJwtSecret } = require("../../helpers/jwt-secret");
 
 const registerUser = async (req, res) => {
-  const { userName, userEmail, password, role } = req.body;
+  const { userName, userEmail, password } = req.body;
 
   const existingUser = await User.findOne({
     $or: [{ userEmail }, { userName }],
@@ -14,6 +15,15 @@ const registerUser = async (req, res) => {
       success: false,
       message: "User name or user email already exists",
     });
+  }
+
+  const adminEmail = (process.env.ADMIN_EMAIL || "").trim().toLowerCase();
+  const incomingEmail = String(userEmail).trim().toLowerCase();
+  const adminCount = await User.countDocuments({ role: "admin" });
+
+  let role = "user";
+  if (adminCount === 0 && adminEmail && incomingEmail === adminEmail) {
+    role = "admin";
   }
 
   const hashPassword = await bcrypt.hash(password, 10);
@@ -51,7 +61,7 @@ const loginUser = async (req, res) => {
       userEmail: checkUser.userEmail,
       role: checkUser.role,
     },
-    "JWT_SECRET",
+    getJwtSecret(),
     { expiresIn: "120m" }
   );
 

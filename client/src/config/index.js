@@ -51,6 +51,7 @@ export const initialSignUpFormData = {
 };
 
 export const languageOptions = [
+  { id: "hindi", label: "Hindi" },
   { id: "english", label: "English" },
   { id: "spanish", label: "Spanish" },
   { id: "french", label: "French" },
@@ -70,16 +71,16 @@ export const courseLevelOptions = [
 ];
 
 export const courseCategories = [
-  { id: "web-development", label: "Web Development" },
-  { id: "backend-development", label: "Backend Development" },
-  { id: "data-science", label: "Data Science" },
-  { id: "machine-learning", label: "Machine Learning" },
-  { id: "artificial-intelligence", label: "Artificial Intelligence" },
-  { id: "cloud-computing", label: "Cloud Computing" },
-  { id: "cyber-security", label: "Cyber Security" },
-  { id: "mobile-development", label: "Mobile Development" },
-  { id: "game-development", label: "Game Development" },
-  { id: "software-engineering", label: "Software Engineering" },
+  { id: "class-8", label: "Class 8" },
+  { id: "class-9", label: "Class 9" },
+  { id: "class-10", label: "Class 10" },
+  { id: "class-11", label: "Class 11" },
+  { id: "class-12", label: "Class 12" },
+  { id: "graduation", label: "Graduation" },
+  { id: "competitive-exams", label: "Competitive Exams" },
+  { id: "jee-main", label: "JEE Main" },
+  { id: "jee-advanced", label: "JEE Advanced" },
+  { id: "neet", label: "NEET" },
 ];
 
 export const courseLandingPageFormControls = [

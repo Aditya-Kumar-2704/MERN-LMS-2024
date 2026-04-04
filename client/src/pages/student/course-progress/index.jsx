@@ -16,6 +16,7 @@ import { AuthContext } from "@/context/auth-context";
 import { StudentContext } from "@/context/student-context";
 import {
   getCurrentCourseProgressService,
+  listStudentExamsForCourseService,
   markLectureAsViewedService,
   resetCourseProgressService,
 } from "@/services";
@@ -35,6 +36,7 @@ function StudentViewCourseProgressPage() {
     useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isSideBarOpen, setIsSideBarOpen] = useState(true);
+  const [courseExams, setCourseExams] = useState([]);
   const { id } = useParams();
 
   async function fetchCurrentCourseProgress() {
@@ -42,11 +44,15 @@ function StudentViewCourseProgressPage() {
     if (response?.success) {
       if (!response?.data?.isPurchased) {
         setLockCourse(true);
+        setCourseExams([]);
       } else {
         setStudentCurrentCourseProgress({
           courseDetails: response?.data?.courseDetails,
           progress: response?.data?.progress,
         });
+
+        const examList = await listStudentExamsForCourseService(id);
+        if (examList?.success) setCourseExams(examList.data || []);
 
         if (response?.data?.completed) {
           setCurrentLecture(response?.data?.courseDetails?.curriculum[0]);
@@ -168,16 +174,22 @@ function StudentViewCourseProgressPage() {
           }`}
         >
           <Tabs defaultValue="content" className="h-full flex flex-col">
-            <TabsList className="grid bg-[#1c1d1f] w-full grid-cols-2 p-0 h-14">
+            <TabsList className="grid bg-[#1c1d1f] w-full grid-cols-3 p-0 h-14">
               <TabsTrigger
                 value="content"
-                className=" text-black rounded-none h-full"
+                className=" text-black rounded-none h-full text-xs sm:text-sm"
               >
-                Course Content
+                Content
+              </TabsTrigger>
+              <TabsTrigger
+                value="exams"
+                className=" text-black rounded-none h-full text-xs sm:text-sm"
+              >
+                Exams
               </TabsTrigger>
               <TabsTrigger
                 value="overview"
-                className=" text-black rounded-none h-full"
+                className=" text-black rounded-none h-full text-xs sm:text-sm"
               >
                 Overview
               </TabsTrigger>
@@ -201,6 +213,33 @@ function StudentViewCourseProgressPage() {
                         <span>{item?.title}</span>
                       </div>
                     )
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
+            <TabsContent value="exams" className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4 space-y-3">
+                  {courseExams.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      No exams for this course yet.
+                    </p>
+                  ) : (
+                    courseExams.map((ex) => (
+                      <Button
+                        key={ex._id}
+                        variant="secondary"
+                        className="w-full justify-start text-black h-auto py-3 flex flex-col items-start"
+                        onClick={() =>
+                          navigate(`/course/${id}/exam/${ex._id}`)
+                        }
+                      >
+                        <span className="font-semibold">{ex.title}</span>
+                        <span className="text-xs font-normal text-gray-600">
+                          Pass at {ex.passingScorePercent}%
+                        </span>
+                      </Button>
+                    ))
                   )}
                 </div>
               </ScrollArea>

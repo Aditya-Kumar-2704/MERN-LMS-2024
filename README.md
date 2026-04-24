@@ -1,6 +1,6 @@
-# Vikash Classes MCQ Assessment System
+# Vikash Classes LMS And  MCQ Assessment System
 
-A simple university-style MCQ assessment system built with:
+A simple Learning Management Systm and  MCQ assessment system built with:
 
 - Frontend: React, React Router, Axios
 - Backend: Node.js, Express, MongoDB, Mongoose
@@ -9,8 +9,8 @@ A simple university-style MCQ assessment system built with:
 ## Features
 
 - Admin dashboard
-  - Create and manage subjects
-  - Add, edit, and delete MCQ questions
+  - Create and manage instructor,student,topper,coursees and MCQ
+  - Add, edit, and delete instructor,student,topper,course & MCQ questions
   - Create timed tests from selected questions
 - Student dashboard
   - View subjects and published tests
@@ -77,7 +77,8 @@ PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/vikash-assessment
 CLIENT_URL=http://localhost:5173
 JWT_SECRET=your_jwt_secret_here
-ADMIN_EMAIL=admin@example.com
+ADMIN_EMAIL=abcxyz@gmail.com
+password:Aditya@123
 ```
 
 Notes:

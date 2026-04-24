@@ -16,10 +16,23 @@ export default function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(true);
 
+  function syncAuthSession(user, accessToken) {
+    if (accessToken) {
+      sessionStorage.setItem("accessToken", JSON.stringify(accessToken));
+    }
+
+    setAuth({
+      authenticate: Boolean(user),
+      user: user || null,
+    });
+  }
+
   // Redirect user to their dashboard based on role
   const redirectToRoleDashboard = (user) => {
     if (user?.role === "admin") {
       navigate("/admin");
+    } else if (user?.role === "instructor") {
+      navigate("/instructor");
     } else {
       navigate("/home");
     }
@@ -48,14 +61,7 @@ export default function AuthProvider({ children }) {
       console.log(data, "Login Response");
 
       if (data.success) {
-        sessionStorage.setItem(
-          "accessToken",
-          JSON.stringify(data.data.accessToken)
-        );
-        setAuth({
-          authenticate: true,
-          user: data.data.user,
-        });
+        syncAuthSession(data.data.user, data.data.accessToken);
         // Redirect to appropriate dashboard based on role
         redirectToRoleDashboard(data.data.user);
       } else {
@@ -81,10 +87,7 @@ export default function AuthProvider({ children }) {
     try {
       const data = await checkAuthService();
       if (data.success) {
-        setAuth({
-          authenticate: true,
-          user: data.data.user,
-        });
+        syncAuthSession(data.data.user);
         setLoading(false);
       } else {
         setAuth({
@@ -128,6 +131,7 @@ export default function AuthProvider({ children }) {
         handleRegisterUser,
         handleLoginUser,
         auth,
+        syncAuthSession,
         resetCredentials,
       }}
     >

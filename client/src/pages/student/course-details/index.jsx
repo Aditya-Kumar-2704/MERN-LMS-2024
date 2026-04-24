@@ -21,6 +21,20 @@ import { CheckCircle, Globe, Lock, PlayCircle } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+function formatCourseDate(value) {
+  if (!value) {
+    return "Date not available";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date not available";
+  }
+
+  return date.toISOString().split("T")[0];
+}
+
 function StudentViewCourseDetailsPage() {
   const {
     studentViewCourseDetails,
@@ -37,34 +51,38 @@ function StudentViewCourseDetailsPage() {
     useState(null);
   const [showFreePreviewDialog, setShowFreePreviewDialog] = useState(false);
   const [approvalUrl, setApprovalUrl] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
 
   async function fetchStudentViewCourseDetails() {
-    // const checkCoursePurchaseInfoResponse =
-    //   await checkCoursePurchaseInfoService(
-    //     currentCourseDetailsId,
-    //     auth?.user._id
-    //   );
+    try {
+      setLoadingState(true);
+      console.log("Fetching course details for ID:", currentCourseDetailsId);
+      
+      const response = await fetchStudentViewCourseDetailsService(
+        currentCourseDetailsId
+      );
 
-    // if (
-    //   checkCoursePurchaseInfoResponse?.success &&
-    //   checkCoursePurchaseInfoResponse?.data
-    // ) {
-    //   navigate(`/course-progress/${currentCourseDetailsId}`);
-    //   return;
-    // }
+      console.log("Course details response:", response);
 
-    const response = await fetchStudentViewCourseDetailsService(
-      currentCourseDetailsId
-    );
-
-    if (response?.success) {
-      setStudentViewCourseDetails(response?.data);
-      setLoadingState(false);
-    } else {
+      if (response?.success) {
+        setStudentViewCourseDetails(response?.data);
+        setLoadingState(false);
+        setErrorMessage("");
+      } else {
+        console.error("Failed to fetch course details:", response?.message);
+        setStudentViewCourseDetails(null);
+        setErrorMessage(response?.message || "Failed to load course details");
+        setLoadingState(false);
+      }
+    } catch (error) {
+      console.error("Error fetching course details:", error);
       setStudentViewCourseDetails(null);
+      setErrorMessage(error?.response?.data?.message || "Network error while loading course");
       setLoadingState(false);
     }
   }
@@ -75,6 +93,11 @@ function StudentViewCourseDetailsPage() {
   }
 
   async function handleCreatePayment() {
+    if (isPurchased) {
+      navigate(`/course-progress/${studentViewCourseDetails?._id || id}`);
+      return;
+    }
+
     const paymentPayload = {
       userId: auth?.user?._id,
       userName: auth?.user?.userName,
@@ -93,15 +116,50 @@ function StudentViewCourseDetailsPage() {
       coursePricing: studentViewCourseDetails?.pricing,
     };
 
-    console.log(paymentPayload, "paymentPayload");
-    const response = await createPaymentService(paymentPayload);
+    try {
+      setPaymentLoading(true);
+      setErrorMessage("");
+      const response = await createPaymentService(paymentPayload);
 
-    if (response.success) {
-      sessionStorage.setItem(
-        "currentOrderId",
-        JSON.stringify(response?.data?.orderId)
+      if (response?.success) {
+        sessionStorage.setItem(
+          "currentOrderId",
+          JSON.stringify(response?.data?.orderId)
+        );
+        setApprovalUrl(response?.data?.approveUrl);
+      } else {
+        setErrorMessage(response?.message || "Could not start enrollment");
+      }
+    } catch (error) {
+      console.error("Create payment error:", error);
+      setErrorMessage(
+        error?.response?.data?.message || "Could not start enrollment"
       );
-      setApprovalUrl(response?.data?.approveUrl);
+    } finally {
+      setPaymentLoading(false);
+    }
+  }
+
+  async function checkPurchaseStatus(courseId) {
+    if (!courseId || !auth?.user?._id) {
+      setIsPurchased(false);
+      return;
+    }
+
+    try {
+      const response = await checkCoursePurchaseInfoService(
+        courseId,
+        auth.user._id
+      );
+
+      if (response?.success) {
+        setIsPurchased(Boolean(response.data));
+      } else {
+        setIsPurchased(false);
+      }
+    } catch (error) {
+      console.error("Purchase check error:", error);
+      setIsPurchased(false);
     }
   }
 
@@ -114,17 +172,40 @@ function StudentViewCourseDetailsPage() {
   }, [currentCourseDetailsId]);
 
   useEffect(() => {
+    if (id) {
+      checkPurchaseStatus(id);
+    }
+  }, [id, auth?.user?._id]);
+
+  useEffect(() => {
     if (id) setCurrentCourseDetailsId(id);
   }, [id]);
 
   useEffect(() => {
     if (!location.pathname.includes("course/details"))
       setStudentViewCourseDetails(null),
-        setCurrentCourseDetailsId(null),
-        setCoursePurchaseId(null);
+        setCurrentCourseDetailsId(null);
   }, [location.pathname]);
 
   if (loadingState) return <Skeleton />;
+
+  if (!studentViewCourseDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <h2 className="text-2xl font-bold mb-4">Course Not Available</h2>
+            <p className="text-gray-600 mb-6">
+              {errorMessage || "Sorry, we couldn't load this course. It may have been deleted or you may not have permission to view it."}
+            </p>
+            <Button onClick={() => navigate("/courses")}>
+              Back to Courses
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (approvalUrl !== "") {
     window.location.href = approvalUrl;
@@ -146,7 +227,7 @@ function StudentViewCourseDetailsPage() {
         <p className="text-xl mb-4">{studentViewCourseDetails?.subtitle}</p>
         <div className="flex items-center space-x-4 mt-2 text-sm">
           <span>Created By {studentViewCourseDetails?.instructorName}</span>
-          <span>Created On {studentViewCourseDetails?.date.split("T")[0]}</span>
+          <span>Created On {formatCourseDate(studentViewCourseDetails?.date)}</span>
           <span className="flex items-center">
             <Globe className="mr-1 h-4 w-4" />
             {studentViewCourseDetails?.primaryLanguage}
@@ -236,8 +317,26 @@ function StudentViewCourseDetailsPage() {
                   ${studentViewCourseDetails?.pricing}
                 </span>
               </div>
-              <Button onClick={handleCreatePayment} className="w-full">
-                Buy Now
+              {errorMessage ? (
+                <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {errorMessage}
+                </p>
+              ) : null}
+              {isPurchased ? (
+                <p className="mb-4 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                  You are already enrolled in this course.
+                </p>
+              ) : null}
+              <Button
+                onClick={handleCreatePayment}
+                className="w-full"
+                disabled={paymentLoading}
+              >
+                {paymentLoading
+                  ? "Processing..."
+                  : isPurchased
+                    ? "Go to Course"
+                    : "Enroll Now"}
               </Button>
             </CardContent>
           </Card>

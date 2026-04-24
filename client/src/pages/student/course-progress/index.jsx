@@ -25,6 +25,29 @@ import { useContext, useEffect, useState } from "react";
 import Confetti from "react-confetti";
 import { useNavigate, useParams } from "react-router-dom";
 
+function getNextLecture(courseDetails, progress, completed) {
+  const curriculum = courseDetails?.curriculum || [];
+
+  if (!curriculum.length) {
+    return null;
+  }
+
+  if (completed) {
+    return curriculum[0];
+  }
+
+  const viewedLectureIds = new Set(
+    (progress || [])
+      .filter((item) => item?.viewed)
+      .map((item) => String(item.lectureId))
+  );
+
+  return (
+    curriculum.find((item) => !viewedLectureIds.has(String(item._id))) ||
+    curriculum[curriculum.length - 1]
+  );
+}
+
 function StudentViewCourseProgressPage() {
   const navigate = useNavigate();
   const { auth } = useContext(AuthContext);
@@ -40,46 +63,55 @@ function StudentViewCourseProgressPage() {
   const { id } = useParams();
 
   async function fetchCurrentCourseProgress() {
-    const response = await getCurrentCourseProgressService(auth?.user?._id, id);
-    if (response?.success) {
+    try {
+      const response = await getCurrentCourseProgressService(auth?.user?._id, id);
+
+      if (!response?.success) {
+        return;
+      }
+
       if (!response?.data?.isPurchased) {
         setLockCourse(true);
+        setCurrentLecture(null);
         setCourseExams([]);
-      } else {
-        setStudentCurrentCourseProgress({
-          courseDetails: response?.data?.courseDetails,
-          progress: response?.data?.progress,
-        });
-
-        const examList = await listStudentExamsForCourseService(id);
-        if (examList?.success) setCourseExams(examList.data || []);
-
-        if (response?.data?.completed) {
-          setCurrentLecture(response?.data?.courseDetails?.curriculum[0]);
-          setShowCourseCompleteDialog(true);
-          setShowConfetti(true);
-
-          return;
-        }
-
-        if (response?.data?.progress?.length === 0) {
-          setCurrentLecture(response?.data?.courseDetails?.curriculum[0]);
-        } else {
-          console.log("logging here");
-          const lastIndexOfViewedAsTrue = response?.data?.progress.reduceRight(
-            (acc, obj, index) => {
-              return acc === -1 && obj.viewed ? index : acc;
-            },
-            -1
-          );
-
-          setCurrentLecture(
-            response?.data?.courseDetails?.curriculum[
-              lastIndexOfViewedAsTrue + 1
-            ]
-          );
-        }
+        setStudentCurrentCourseProgress({});
+        return;
       }
+
+      setLockCourse(false);
+      setStudentCurrentCourseProgress({
+        courseDetails: response?.data?.courseDetails,
+        progress: response?.data?.progress || [],
+      });
+
+      const examList = await listStudentExamsForCourseService(id);
+      if (examList?.success) {
+        setCourseExams(examList.data || []);
+      } else {
+        setCourseExams([]);
+      }
+
+      const nextLecture = getNextLecture(
+        response?.data?.courseDetails,
+        response?.data?.progress,
+        response?.data?.completed
+      );
+
+      setCurrentLecture(nextLecture);
+
+      if (response?.data?.completed) {
+        setShowCourseCompleteDialog(true);
+        setShowConfetti(true);
+        return;
+      }
+
+      setShowCourseCompleteDialog(false);
+      setShowConfetti(false);
+    } catch (error) {
+      console.error("Error fetching course progress:", error);
+      setLockCourse(true);
+      setCurrentLecture(null);
+      setCourseExams([]);
     }
   }
 
@@ -116,11 +148,19 @@ function StudentViewCourseProgressPage() {
   }, [id]);
 
   useEffect(() => {
-    if (currentLecture?.progressValue === 1) updateCourseProgress();
+    if (currentLecture?.progressValue === 1) {
+      updateCourseProgress();
+    }
   }, [currentLecture]);
 
   useEffect(() => {
-    if (showConfetti) setTimeout(() => setShowConfetti(false), 15000);
+    if (!showConfetti) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setShowConfetti(false), 15000);
+
+    return () => clearTimeout(timer);
   }, [showConfetti]);
 
   console.log(currentLecture, "currentLecture");
@@ -200,11 +240,17 @@ function StudentViewCourseProgressPage() {
                   {studentCurrentCourseProgress?.courseDetails?.curriculum.map(
                     (item) => (
                       <div
-                        className="flex items-center space-x-2 text-sm text-white font-bold cursor-pointer"
+                        className={`flex items-center space-x-2 rounded-md p-2 text-sm font-bold cursor-pointer transition-colors ${
+                          currentLecture?._id === item._id
+                            ? "bg-white/10 text-white"
+                            : "text-white"
+                        }`}
                         key={item._id}
+                        onClick={() => setCurrentLecture(item)}
                       >
                         {studentCurrentCourseProgress?.progress?.find(
-                          (progressItem) => progressItem.lectureId === item._id
+                          (progressItem) =>
+                            String(progressItem.lectureId) === String(item._id)
                         )?.viewed ? (
                           <Check className="h-4 w-4 text-green-500" />
                         ) : (

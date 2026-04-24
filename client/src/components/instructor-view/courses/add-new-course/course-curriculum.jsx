@@ -60,11 +60,26 @@ function CourseCurriculum() {
     const selectedFile = event.target.files[0];
 
     if (selectedFile) {
+      // Validate file type
+      const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+      if (!validVideoTypes.includes(selectedFile.type)) {
+        alert('Please upload a valid video file (MP4, MOV, AVI, WEBM, MPEG)');
+        return;
+      }
+
+      // Validate file size (Max 1GB)
+      const maxSizeInBytes = 1024 * 1024 * 1024;
+      if (selectedFile.size > maxSizeInBytes) {
+        alert(`File size exceeds 1GB limit. Your file is ${(selectedFile.size / (1024 * 1024 * 1024)).toFixed(2)}GB. Please upload a smaller video.`);
+        return;
+      }
+
       const videoFormData = new FormData();
       videoFormData.append("file", selectedFile);
 
       try {
         setMediaUploadProgress(true);
+        console.log(`Starting upload: ${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)}MB)`);
         const response = await mediaUploadService(
           videoFormData,
           setMediaUploadProgressPercentage
@@ -78,9 +93,16 @@ function CourseCurriculum() {
           };
           setCourseCurriculumFormData(cpyCourseCurriculumFormData);
           setMediaUploadProgress(false);
+          alert('Video uploaded successfully!');
+        } else {
+          alert(response.message || 'Upload failed');
+          setMediaUploadProgress(false);
         }
       } catch (error) {
-        console.log(error);
+        console.error('Upload error:', error);
+        const errorMsg = error?.response?.data?.message || error?.message || 'Upload failed. Please check your internet connection and try again.';
+        alert(`Upload failed: ${errorMsg}`);
+        setMediaUploadProgress(false);
       }
     }
   }
@@ -133,12 +155,39 @@ function CourseCurriculum() {
 
   async function handleMediaBulkUpload(event) {
     const selectedFiles = Array.from(event.target.files);
-    const bulkFormData = new FormData();
+    
+    // Validate files before upload
+    const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'];
+    const maxSizeInBytes = 1024 * 1024 * 1024;
+    
+    let invalidFiles = [];
+    let oversizedFiles = [];
+    
+    selectedFiles.forEach((file) => {
+      if (!validVideoTypes.includes(file.type)) {
+        invalidFiles.push(file.name);
+      }
+      if (file.size > maxSizeInBytes) {
+        oversizedFiles.push(`${file.name} (${(file.size / (1024 * 1024)).toFixed(2)}MB)`);
+      }
+    });
+    
+    if (invalidFiles.length > 0) {
+      alert(`Invalid file types: ${invalidFiles.join(', ')}\nPlease upload only video files.`);
+      return;
+    }
+    
+    if (oversizedFiles.length > 0) {
+      alert(`Files exceed 1GB limit:\n${oversizedFiles.join('\n')}\nPlease upload smaller videos.`);
+      return;
+    }
 
+    const bulkFormData = new FormData();
     selectedFiles.forEach((fileItem) => bulkFormData.append("files", fileItem));
 
     try {
       setMediaUploadProgress(true);
+      console.log(`Starting bulk upload of ${selectedFiles.length} files`);
       const response = await mediaBulkUploadService(
         bulkFormData,
         setMediaUploadProgressPercentage
@@ -164,9 +213,15 @@ function CourseCurriculum() {
         ];
         setCourseCurriculumFormData(cpyCourseCurriculumFormdata);
         setMediaUploadProgress(false);
+        alert(`Successfully uploaded ${response.data.length} videos!`);
+      } else {
+        alert('Bulk upload failed. Please try again.');
+        setMediaUploadProgress(false);
       }
     } catch (e) {
-      console.log(e);
+      console.error('Bulk upload error:', e);
+      alert('Upload failed. Check console for details.');
+      setMediaUploadProgress(false);
     }
   }
 

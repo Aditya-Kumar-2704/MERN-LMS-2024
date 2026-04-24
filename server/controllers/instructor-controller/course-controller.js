@@ -1,5 +1,12 @@
 const Course = require("../../models/Course");
 
+function canManageCourse(user, course) {
+  return (
+    user?.role === "admin" ||
+    String(course?.instructorId) === String(user?._id)
+  );
+}
+
 const addNewCourse = async (req, res) => {
   try {
     const courseData = {
@@ -28,7 +35,9 @@ const addNewCourse = async (req, res) => {
 
 const getAllCourses = async (req, res) => {
   try {
-    const coursesList = await Course.find({});
+    const query =
+      req.user?.role === "admin" ? {} : { instructorId: String(req.user._id) };
+    const coursesList = await Course.find(query).sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -55,6 +64,13 @@ const getCourseDetailsByID = async (req, res) => {
       });
     }
 
+    if (!canManageCourse(req.user, courseDetails)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only access your own courses",
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: courseDetails,
@@ -71,20 +87,33 @@ const getCourseDetailsByID = async (req, res) => {
 const updateCourseByID = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedCourseData = req.body;
+    const course = await Course.findById(id);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found!",
+      });
+    }
+
+    if (!canManageCourse(req.user, course)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only update your own courses",
+      });
+    }
+
+    const updatedCourseData = {
+      ...req.body,
+      instructorId: course.instructorId,
+      instructorName: course.instructorName,
+    };
 
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
       updatedCourseData,
       { new: true }
     );
-
-    if (!updatedCourse) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found!",
-      });
-    }
 
     res.status(200).json({
       success: true,

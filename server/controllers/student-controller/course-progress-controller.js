@@ -2,10 +2,48 @@ const CourseProgress = require("../../models/CourseProgress");
 const Course = require("../../models/Course");
 const StudentCourses = require("../../models/StudentCourses");
 
+async function hasPurchasedCourse(userId, courseId) {
+  const studentPurchasedCourses = await StudentCourses.findOne({ userId });
+
+  return (
+    studentPurchasedCourses?.courses?.some(
+      (item) => String(item.courseId) === String(courseId)
+    ) || false
+  );
+}
+
 //mark current lecture as viewed
 const markCurrentLectureAsViewed = async (req, res) => {
   try {
     const { userId, courseId, lectureId } = req.body;
+    const isPurchased = await hasPurchasedCourse(userId, courseId);
+
+    if (!isPurchased) {
+      return res.status(403).json({
+        success: false,
+        message: "You need to purchase this course to track progress.",
+      });
+    }
+
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: "Course not found",
+      });
+    }
+
+    const lectureExists = course.curriculum.some(
+      (item) => String(item._id) === String(lectureId)
+    );
+
+    if (!lectureExists) {
+      return res.status(404).json({
+        success: false,
+        message: "Lecture not found",
+      });
+    }
 
     let progress = await CourseProgress.findOne({ userId, courseId });
     if (!progress) {
@@ -39,15 +77,6 @@ const markCurrentLectureAsViewed = async (req, res) => {
       await progress.save();
     }
 
-    const course = await Course.findById(courseId);
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: "Course not found",
-      });
-    }
-
     //check all the lectures are viewed or not
     const allLecturesViewed =
       progress.lecturesProgress.length === course.curriculum.length &&
@@ -79,12 +108,10 @@ const getCurrentCourseProgress = async (req, res) => {
   try {
     const { userId, courseId } = req.params;
 
-    const studentPurchasedCourses = await StudentCourses.findOne({ userId });
-
-    const isCurrentCoursePurchasedByCurrentUserOrNot =
-      studentPurchasedCourses?.courses?.findIndex(
-        (item) => item.courseId === courseId
-      ) > -1;
+    const isCurrentCoursePurchasedByCurrentUserOrNot = await hasPurchasedCourse(
+      userId,
+      courseId
+    );
 
     if (!isCurrentCoursePurchasedByCurrentUserOrNot) {
       return res.status(200).json({
@@ -150,6 +177,14 @@ const getCurrentCourseProgress = async (req, res) => {
 const resetCurrentCourseProgress = async (req, res) => {
   try {
     const { userId, courseId } = req.body;
+    const isPurchased = await hasPurchasedCourse(userId, courseId);
+
+    if (!isPurchased) {
+      return res.status(403).json({
+        success: false,
+        message: "You need to purchase this course to reset progress.",
+      });
+    }
 
     const progress = await CourseProgress.findOne({ userId, courseId });
 

@@ -1,11 +1,12 @@
 import InstructorCourses from "@/components/instructor-view/courses";
 import InstructorDashboard from "@/components/instructor-view/dashboard";
+import InstructorLiveClasses from "@/components/instructor-view/live-classes";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { AuthContext } from "@/context/auth-context";
 import { InstructorContext } from "@/context/instructor-context";
 import { fetchInstructorCourseListService } from "@/services";
-import { BarChart, Book, LogOut, Shield } from "lucide-react";
+import { BarChart, Book, CalendarDays, LogOut, Shield } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -38,6 +39,14 @@ function InstructorDashboardpage() {
       component: <InstructorCourses listOfCourses={instructorCoursesList} />,
     },
     {
+      icon: CalendarDays,
+      label: "Live Classes",
+      value: "live-classes",
+      component: (
+        <InstructorLiveClasses listOfCourses={instructorCoursesList} />
+      ),
+    },
+    {
       icon: LogOut,
       label: "Logout",
       value: "logout",
@@ -51,6 +60,8 @@ function InstructorDashboardpage() {
   }
 
   console.log(instructorCoursesList, "instructorCoursesList");
+  const activeMenuItem =
+    menuItems.find((menuItem) => menuItem.value === activeTab) || menuItems[0];
 
   return (
     <div className="flex h-full min-h-screen bg-gray-100">
@@ -90,10 +101,10 @@ function InstructorDashboardpage() {
       </aside>
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-8">{activeMenuItem.label}</h1>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             {menuItems.map((menuItem) => (
-              <TabsContent value={menuItem.value}>
+              <TabsContent key={menuItem.value} value={menuItem.value}>
                 {menuItem.component !== null ? menuItem.component : null}
               </TabsContent>
             ))}

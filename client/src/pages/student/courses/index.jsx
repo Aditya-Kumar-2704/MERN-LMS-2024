@@ -39,6 +39,7 @@ function StudentViewCoursesPage() {
   const [sort, setSort] = useState("price-lowtohigh");
   const [filters, setFilters] = useState({});
   const [searchParams, setSearchParams] = useSearchParams();
+  const [errorMessage, setErrorMessage] = useState("");
   const {
     studentViewCoursesList,
     setStudentViewCoursesList,
@@ -80,25 +81,45 @@ function StudentViewCoursesPage() {
       ...filters,
       sortBy: sort,
     });
-    const response = await fetchStudentViewCourseListService(query);
-    if (response?.success) {
-      setStudentViewCoursesList(response?.data);
+    try {
+      setLoadingState(true);
+      setErrorMessage("");
+      const response = await fetchStudentViewCourseListService(query);
+      if (response?.success) {
+        setStudentViewCoursesList(response?.data);
+        setErrorMessage("");
+      } else {
+        setStudentViewCoursesList([]);
+        setErrorMessage(response?.message || "Failed to load courses");
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      setStudentViewCoursesList([]);
+      setErrorMessage("Unable to load courses. Please check your internet connection.");
+    } finally {
       setLoadingState(false);
     }
   }
 
   async function handleCourseNavigate(getCurrentCourseId) {
-    const response = await checkCoursePurchaseInfoService(
-      getCurrentCourseId,
-      auth?.user?._id
-    );
+    try {
+      const response = await checkCoursePurchaseInfoService(
+        getCurrentCourseId,
+        auth?.user?._id
+      );
 
-    if (response?.success) {
-      if (response?.data) {
-        navigate(`/course-progress/${getCurrentCourseId}`);
+      if (response?.success) {
+        if (response?.data) {
+          navigate(`/course-progress/${getCurrentCourseId}`);
+        } else {
+          navigate(`/course/details/${getCurrentCourseId}`);
+        }
       } else {
-        navigate(`/course/details/${getCurrentCourseId}`);
+        setErrorMessage("Unable to check course access. Please try again.");
       }
+    } catch (error) {
+      console.error("Error navigating to course:", error);
+      setErrorMessage("An error occurred while accessing the course.");
     }
   }
 
@@ -128,6 +149,11 @@ function StudentViewCoursesPage() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-4">All Courses</h1>
+      {errorMessage && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
+          {errorMessage}
+        </div>
+      )}
       <div className="flex flex-col md:flex-row gap-4">
         <aside className="w-full md:w-64 space-y-4">
           <div>
@@ -186,7 +212,7 @@ function StudentViewCoursesPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <span className="text-sm text-black font-bold">
-              {studentViewCoursesList.length} Results
+              {studentViewCoursesList?.length || 0} Results
             </span>
           </div>
           <div className="space-y-4">
@@ -224,6 +250,17 @@ function StudentViewCoursesPage() {
                       <p className="font-bold text-lg">
                         ${courseItem?.pricing}
                       </p>
+                      <div className="mt-4 flex gap-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCourseNavigate(courseItem?._id);
+                          }}
+                          className="bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          View Details
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

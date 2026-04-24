@@ -9,7 +9,7 @@ const getCoursesByStudentId = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: studentBoughtCourses.courses,
+      data: studentBoughtCourses?.courses || [],
     });
   } catch (error) {
     console.log(error);

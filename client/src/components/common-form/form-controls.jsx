@@ -8,8 +8,20 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
+import { cn } from "@/lib/utils";
 
-function FormControls({ formControls = [], formData, setFormData }) {
+function FormControls({
+  formControls = [],
+  formData,
+  setFormData,
+  fieldsContainerClassName,
+  fieldWrapperClassName,
+  labelClassName,
+  inputClassName,
+  selectTriggerClassName,
+  selectContentClassName,
+  textareaClassName,
+}) {
   function renderComponentByType(getControlItem) {
     let element = null;
     const currentControlItemValue = formData[getControlItem.name] || "";
@@ -23,6 +35,7 @@ function FormControls({ formControls = [], formData, setFormData }) {
             placeholder={getControlItem.placeholder}
             type={getControlItem.type}
             value={currentControlItemValue}
+            className={inputClassName}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -43,10 +56,10 @@ function FormControls({ formControls = [], formData, setFormData }) {
             }
             value={currentControlItemValue}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className={cn("w-full", selectTriggerClassName)}>
               <SelectValue placeholder={getControlItem.label} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className={selectContentClassName}>
               {getControlItem.options && getControlItem.options.length > 0
                 ? getControlItem.options.map((optionItem) => (
                     <SelectItem key={optionItem.id} value={optionItem.id}>
@@ -65,6 +78,7 @@ function FormControls({ formControls = [], formData, setFormData }) {
             name={getControlItem.name}
             placeholder={getControlItem.placeholder}
             value={currentControlItemValue}
+            className={textareaClassName}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -83,6 +97,7 @@ function FormControls({ formControls = [], formData, setFormData }) {
             placeholder={getControlItem.placeholder}
             type={getControlItem.type}
             value={currentControlItemValue}
+            className={inputClassName}
             onChange={(event) =>
               setFormData({
                 ...formData,
@@ -98,10 +113,15 @@ function FormControls({ formControls = [], formData, setFormData }) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className={cn("flex flex-col gap-3", fieldsContainerClassName)}>
       {formControls.map((controleItem) => (
-        <div key={controleItem.name}>
-          <Label htmlFor={controleItem.name}>{controleItem.label}</Label>
+        <div key={controleItem.name} className={fieldWrapperClassName}>
+          <Label
+            htmlFor={controleItem.name}
+            className={cn("mb-2 inline-flex", labelClassName)}
+          >
+            {controleItem.label}
+          </Label>
           {renderComponentByType(controleItem)}
         </div>
       ))}

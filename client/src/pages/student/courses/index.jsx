@@ -248,7 +248,7 @@ function StudentViewCoursesPage() {
                         } - ${courseItem?.level.toUpperCase()} Level`}
                       </p>
                       <p className="font-bold text-lg">
-                        ${courseItem?.pricing}
+                        RS. {courseItem?.pricing}
                       </p>
                       <div className="mt-4 flex gap-2">
                         <Button
